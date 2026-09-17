@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アンサガ TA記録集積所</title>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --accent-color: #e74c3c;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background-color: var(--bg-color);
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      text-align: center;
+      padding: 1.5rem 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    main {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    h2 {
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 0.5rem;
+      margin-top: 0;
+    }
+    .crown { color: #f1c40f; }
+    
+    /* 今月の1位 目立つ表示 */
+    #top-record {
+      text-align: center;
+      font-size: 1.2rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #fff9e6, #fff);
+      border: 2px solid #f1c40f;
+      border-radius: 8px;
+    }
+    #top-record .time {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--accent-color);
+      margin: 0.5rem 0;
+    }
+    
+    /* フィルター部分 */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    /* テーブル */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #eee;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f2f6;
+      white-space: nowrap;
+    }
+    a { color: #3498db; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* 直近の投稿 */
+    .recent-list {
+      list-style: none;
+      padding: 0;
+    }
+    .recent-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed #ccc;
+    }
+    
+    .loading { text-align: center; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>アンサガ タイムアタック記録集積所</h1>
+  </header>
+
+  <main>
+    <div id="loading" class="loading">データを読み込んでいます...</div>
+    
+    <div id="content" style="display: none;">
+      <!-- 今月の1位 -->
+      <section>
+        <h2><span class="crown">👑</span> 今月の1位</h2>
+        <div id="top-record"></div>
+      </section>
+
+      <!-- 直近の投稿 -->
+      <section>
+        <h2>🆕 直近の投稿 (最新5件)</h2>
+        <ul id="recent-records" class="recent-list"></ul>
+      </section>
+
+      <!-- 記録一覧と絞り込み -->
+      <section>
+        <h2>📊 記録一覧</h2>
+        <div class="controls">
+          <select id="char-filter">
+            <option value="all">すべての主人公</option>
+            <option value="ローラ">ローラ</option>
+            <option value="マイス">マイス</option>
+            <option value="アーミック">アーミック</option>
+            <option value="ジュディ">ジュディ</option>
+            <option value="キャッシュ">キャッシュ</option>
+            <option value="ヴェント">ヴェント</option>
+            <option value="ルビィ">ルビィ</option>
+          </select>
+          <select id="month-filter">
+            <option value="all">すべての月</option>
+            <!-- JavaScriptで動的に追加されます -->
+          </select>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>主人公</th>
+                <th>タイム</th>
+                <th>走者名</th>
+                <th>達成日</th>
+                <th>配信URL</th>
+                <th>備考</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // ★★★ ここにGASのWebアプリURLを貼り付けます ★★★
+    const API_URL = 'ここにGASのWebアプリURLを貼り付けます';
+
+    let allData = [];
+
+    // タイム(HH:MM:SS)を秒に変換して比較用にする関数
+    function timeToSeconds(timeStr) {
+      if (!timeStr) return Infinity;
+      // Date型になってしまっている場合の対策（GASからの返却値による）
+      let str = String(timeStr);
+      // 時刻形式か簡易チェック
+      const parts = str.match(/(\d+):(\d+):(\d+)/);
+      if (parts) {
+        return parseInt(parts[1], 10) * 3600 + parseInt(parts[2], 10) * 60 + parseInt(parts[3], 10);
+      }
+      return Infinity; // パース失敗時は最後尾に
+    }
+
+    // 日付文字列を YYYY-MM 形式にする関数
+    function formatMonth(dateStr) {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '不明';
+      return `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月`;
+    }
+    
+    // 日付文字列を YYYY/MM/DD にする関数
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    // データの取得と初期描画
+    fetch(API_URL)
+      .then(response => response.json())
+      .then(data => {
+        allData = data;
+        
+        // データのクレンジング（パースエラーなどを防ぐため）
+        allData.forEach(item => {
+          item._seconds = timeToSeconds(item['タイム']);
+          item._month = formatMonth(item['達成日']);
+          item._date = new Date(item['達成日']);
+          item._timestamp = new Date(item['タイムスタンプ']);
+        });
+
+        initApp();
+      })
+      .catch(error => {
+        document.getElementById('loading').innerText = 'データの読み込みに失敗しました。';
+        console.error('Error fetching data:', error);
+      });
+
+    function initApp() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      renderTopRecord();
+      renderRecentRecords();
+      setupFilters();
+      renderTable();
+
+      // フィルター変更時のイベント設定
+      document.getElementById('char-filter').addEventListener('change', renderTable);
+      document.getElementById('month-filter').addEventListener('change', renderTable);
+    }
+
+    // 今月の1位を描画
+    function renderTopRecord() {
+      const now = new Date();
+      const currentMonthStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月`;
+      
+      // 今月のデータだけ抽出
+      const thisMonthData = allData.filter(item => item._month === currentMonthStr);
+      
+      const topRecordEl = document.getElementById('top-record');
+      
+      if (thisMonthData.length === 0) {
+        topRecordEl.innerHTML = '<p>今月の記録はまだ投稿されていません。最初の記録を狙いましょう！</p>';
+        return;
+      }
+
+      // タイムで昇順ソート（早い順）
+      thisMonthData.sort((a, b) => a._seconds - b._seconds);
+      const firstPlace = thisMonthData[0];
+
+      topRecordEl.innerHTML = `
+        <div>主人公：<strong>${firstPlace['主人公'] || ''}</strong></div>
+        <div class="time">${firstPlace['タイム'] || ''}</div>
+        <div>走者：<strong>${firstPlace['走者名'] || '名無し'}</strong> 
+             (${formatDate(firstPlace['達成日'])})</div>
+        ${firstPlace['配信URL'] ? `<div style="margin-top: 10px;"><a href="${firstPlace['配信URL']}" target="_blank">📺 配信アーカイブを見る</a></div>` : ''}
+      `;
+    }
+
+    // 直近の投稿を描画
+    function renderRecentRecords() {
+      // タイムスタンプで降順ソート
+      const sortedByNew = [...allData].sort((a, b) => b._timestamp - a._timestamp);
+      const recent5 = sortedByNew.slice(0, 5);
+      
+      const listEl = document.getElementById('recent-records');
+      recent5.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${item['主人公']}</strong> (${item['タイム']}) - 走者：${item['走者名']} 
+                        <span style="color:#888; font-size:0.85em;">(投稿: ${formatDate(item['タイムスタンプ'])})</span>`;
+        listEl.appendChild(li);
+      });
+    }
+
+    // 達成月フィルターの選択肢を動的に生成
+    function setupFilters() {
+      const monthFilter = document.getElementById('month-filter');
+      const uniqueMonths = [...new Set(allData.map(item => item._month))].filter(m => m !== '不明');
+      
+      // 新しい月順にソート
+      uniqueMonths.sort((a, b) => (a < b ? 1 : -1));
+
+      uniqueMonths.forEach(month => {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = month;
+        monthFilter.appendChild(option);
+      });
+    }
+
+    // テーブルの描画（絞り込み・ソート含む）
+    function renderTable() {
+      const charFilterVal = document.getElementById('char-filter').value;
+      const monthFilterVal = document.getElementById('month-filter').value;
+      const tbody = document.getElementById('records-tbody');
+      
+      tbody.innerHTML = '';
+
+      // 絞り込み
+      let filteredData = allData.filter(item => {
+        const matchChar = (charFilterVal === 'all' || item['主人公'] === charFilterVal);
+        const matchMonth = (monthFilterVal === 'all' || item._month === monthFilterVal);
+        return matchChar && matchMonth;
+      });
+
+      // タイムで昇順ソート（早い順）
+      filteredData.sort((a, b) => a._seconds - b._seconds);
+
+      if (filteredData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">該当する記録がありません。</td></tr>';
+        return;
+      }
+
+      filteredData.forEach(item => {
+        const tr = document.createElement('tr');
+        
+        let urlHtml = '';
+        if (item['配信URL']) {
+          urlHtml = `<a href="${item['配信URL']}" target="_blank">リンク</a>`;
+        }
+
+        tr.innerHTML = `
+          <td>${item['主人公'] || ''}</td>
+          <td style="font-weight:bold;">${item['タイム'] || ''}</td>
+          <td>${item['走者名'] || ''}</td>
+          <td>${formatDate(item['達成日'])}</td>
+          <td>${urlHtml}</td>
+          <td>${item['備考'] || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
