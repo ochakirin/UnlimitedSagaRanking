@@ -26,7 +26,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     main {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 2rem auto;
       padding: 0 1rem;
     }
@@ -44,22 +44,54 @@
     }
     .crown { color: #f1c40f; }
     
-    /* 今月の1位 目立つ表示 */
-    #top-record {
-      text-align: center;
-      font-size: 1.2rem;
-      padding: 2rem;
-      background: linear-gradient(135deg, #fff9e6, #fff);
+    /* 今月の1位：7つの枠（グリッドレイアウト） */
+    .top-records-grid {
+      display: grid;
+      /* 画面幅に合わせて自動で枠の数を調整します */
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .top-card {
+      background: linear-gradient(135deg, #fffcf0, #ffffff);
       border: 2px solid #f1c40f;
       border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
-    #top-record .time {
-      font-size: 2.5rem;
+    .top-card h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--primary-color);
+      border-bottom: 1px dashed #e0e0e0;
+      padding-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    .top-card .time {
+      font-size: 1.8rem;
       font-weight: bold;
       color: var(--accent-color);
       margin: 0.5rem 0;
     }
-    
+    .top-card .runner {
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+    .top-card .date {
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .top-card .no-record {
+      color: #aaa;
+      font-style: italic;
+      padding: 1.5rem 0;
+      font-size: 0.9rem;
+    }
+    .top-card .link {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
     /* フィルター部分 */
     .controls {
       display: flex;
@@ -111,13 +143,15 @@
   </header>
 
   <main>
-    <div id="loading" class="loading">データを読み込んでいます...</div>
+    <div id="loading" class="loading">データを読み込んでいます...<br>（数秒かかる場合があります）</div>
     
     <div id="content" style="display: none;">
-      <!-- 今月の1位 -->
+      <!-- 今月の1位 (7人の枠) -->
       <section>
         <h2><span class="crown">👑</span> 今月の1位</h2>
-        <div id="top-record"></div>
+        <div id="top-records-container" class="top-records-grid">
+          <!-- JavaScriptでここに7枠が生成されます -->
+        </div>
       </section>
 
       <!-- 直近の投稿 -->
@@ -166,10 +200,13 @@
   </main>
 
   <script>
-    // GASのWebアプリURL（設定済み）
+    // GASのWebアプリURL
     const API_URL = 'https://script.google.com/macros/s/AKfycbw4uMCFHjoC9RMpGszyqmztk1srMzWID9NBMS0hfN6JdOvaAHtRnx6_A-DCjWfKu4GP/exec';
 
     let allData = [];
+
+    // 主人公の配列
+    const CHARACTERS = ['ローラ', 'マイス', 'アーミック', 'ジュディ', 'キャッシュ', 'ヴェント', 'ルビィ'];
 
     // タイム(HH:MM:SS)を秒に変換して比較用にする関数
     function timeToSeconds(timeStr) {
@@ -221,7 +258,7 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
 
-      renderTopRecord();
+      renderTopRecordsAllChars();
       renderRecentRecords();
       setupFilters();
       renderTable();
@@ -230,30 +267,42 @@
       document.getElementById('month-filter').addEventListener('change', renderTable);
     }
 
-    // 今月の1位を描画
-    function renderTopRecord() {
+    // 今月の1位（7人全員分）を描画
+    function renderTopRecordsAllChars() {
       const now = new Date();
       const currentMonthStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月`;
       
       const thisMonthData = allData.filter(item => item._month === currentMonthStr);
-      const topRecordEl = document.getElementById('top-record');
+      const containerEl = document.getElementById('top-records-container');
       
-      if (thisMonthData.length === 0) {
-        topRecordEl.innerHTML = '<p>今月の記録はまだ投稿されていません。最初の記録を狙いましょう！</p>';
-        return;
-      }
+      containerEl.innerHTML = ''; // 中身を一度クリア
 
-      thisMonthData.sort((a, b) => a._seconds - b._seconds);
-      const firstPlace = thisMonthData[0];
-
-      // スプレッドシートの列名に合わせました：「投稿する主人公」「投稿者名」
-      topRecordEl.innerHTML = `
-        <div>主人公：<strong>${firstPlace['投稿する主人公'] || ''}</strong></div>
-        <div class="time">${firstPlace['タイム'] || ''}</div>
-        <div>走者：<strong>${firstPlace['投稿者名'] || '名無し'}</strong> 
-             (${formatDate(firstPlace['達成日'])})</div>
-        ${firstPlace['配信URL'] ? `<div style="margin-top: 10px;"><a href="${firstPlace['配信URL']}" target="_blank">📺 配信アーカイブを見る</a></div>` : ''}
-      `;
+      // 7人の主人公それぞれについてカードを生成
+      CHARACTERS.forEach(char => {
+        const charData = thisMonthData.filter(item => item['投稿する主人公'] === char);
+        
+        // カードの大枠を作成
+        let cardHtml = `<div class="top-card"><h3>${char}</h3>`;
+        
+        if (charData.length === 0) {
+          // 記録がない場合
+          cardHtml += `<div class="no-record">今月の記録は<br>まだありません</div>`;
+        } else {
+          // 記録がある場合：タイムで昇順ソートして1位を取得
+          charData.sort((a, b) => a._seconds - b._seconds);
+          const firstPlace = charData[0];
+          
+          cardHtml += `
+            <div class="time">${firstPlace['タイム'] || ''}</div>
+            <div class="runner">走者：<strong>${firstPlace['投稿者名'] || '名無し'}</strong></div>
+            <div class="date">(${formatDate(firstPlace['達成日'])})</div>
+            ${firstPlace['配信URL'] ? `<div class="link"><a href="${firstPlace['配信URL']}" target="_blank">📺 配信を見る</a></div>` : ''}
+          `;
+        }
+        
+        cardHtml += `</div>`;
+        containerEl.innerHTML += cardHtml;
+      });
     }
 
     // 直近の投稿を描画
@@ -270,6 +319,7 @@
       });
     }
 
+    // フィルターの月を動的に生成
     function setupFilters() {
       const monthFilter = document.getElementById('month-filter');
       const uniqueMonths = [...new Set(allData.map(item => item._month))].filter(m => m !== '不明');
@@ -284,6 +334,7 @@
       });
     }
 
+    // テーブルの描画
     function renderTable() {
       const charFilterVal = document.getElementById('char-filter').value;
       const monthFilterVal = document.getElementById('month-filter').value;
