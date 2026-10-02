@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アンサガ TA記録集積所</title>
+  <title>アンサガ TA記録集積所 / UNLIMITED:Saga Speedrun Leaderboard</title>
   <style>
     :root {
       --primary-color: #2c3e50;
@@ -25,6 +25,16 @@
       padding: 1.5rem 0;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    header .sub-title {
+      font-size: 0.9rem;
+      font-weight: normal;
+      opacity: 0.8;
+      margin-top: 0.3rem;
+    }
     main {
       max-width: 1100px;
       margin: 2rem auto;
@@ -41,13 +51,20 @@
       border-bottom: 2px solid var(--primary-color);
       padding-bottom: 0.5rem;
       margin-top: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    h2 .en-title {
+      font-size: 0.6em;
+      color: #666;
+      font-weight: normal;
+      margin-top: 0.2rem;
     }
     .crown { color: #f1c40f; }
     
     /* 今月の1位：7つの枠（グリッドレイアウト） */
     .top-records-grid {
       display: grid;
-      /* 画面幅に合わせて自動で枠の数を調整します */
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1rem;
       margin-top: 1rem;
@@ -86,6 +103,7 @@
       font-style: italic;
       padding: 1.5rem 0;
       font-size: 0.9rem;
+      line-height: 1.4;
     }
     .top-card .link {
       margin-top: 10px;
@@ -95,6 +113,7 @@
     /* フィルター部分 */
     .controls {
       display: flex;
+      flex-wrap: wrap;
       gap: 1rem;
       margin-bottom: 1rem;
     }
@@ -103,6 +122,7 @@
       font-size: 1rem;
       border-radius: 4px;
       border: 1px solid #ccc;
+      max-width: 100%;
     }
 
     /* テーブル */
@@ -119,6 +139,13 @@
     th {
       background-color: #f1f2f6;
       white-space: nowrap;
+      font-size: 0.9rem;
+    }
+    th .en-th {
+      display: block;
+      font-size: 0.75em;
+      color: #666;
+      font-weight: normal;
     }
     a { color: #3498db; text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -140,15 +167,23 @@
 
   <header>
     <h1>アンサガ タイムアタック記録集積所</h1>
+    <div class="sub-title">UNLIMITED:Saga Speedrun Leaderboard</div>
   </header>
 
   <main>
-    <div id="loading" class="loading">データを読み込んでいます...<br>（数秒かかる場合があります）</div>
+    <div id="loading" class="loading">
+      データを読み込んでいます...<br>
+      Loading data...<br>
+      （数秒かかる場合があります / Please wait a few seconds）
+    </div>
     
     <div id="content" style="display: none;">
       <!-- 今月の1位 (7人の枠) -->
       <section>
-        <h2><span class="crown">👑</span> 今月の1位</h2>
+        <h2>
+          <span><span class="crown">👑</span> 今月の1位</span>
+          <span class="en-title">This Month's 1st Place</span>
+        </h2>
         <div id="top-records-container" class="top-records-grid">
           <!-- JavaScriptでここに7枠が生成されます -->
         </div>
@@ -156,26 +191,32 @@
 
       <!-- 直近の投稿 -->
       <section>
-        <h2>🆕 直近の投稿 (最新5件)</h2>
+        <h2>
+          <span>🆕 直近の投稿 (最新5件)</span>
+          <span class="en-title">Recent Submissions (Top 5)</span>
+        </h2>
         <ul id="recent-records" class="recent-list"></ul>
       </section>
 
       <!-- 記録一覧と絞り込み -->
       <section>
-        <h2>📊 記録一覧</h2>
+        <h2>
+          <span>📊 記録一覧</span>
+          <span class="en-title">All Records</span>
+        </h2>
         <div class="controls">
           <select id="char-filter">
-            <option value="all">すべての主人公</option>
-            <option value="ローラ">ローラ</option>
-            <option value="マイス">マイス</option>
-            <option value="アーミック">アーミック</option>
-            <option value="ジュディ">ジュディ</option>
-            <option value="キャッシュ">キャッシュ</option>
-            <option value="ヴェント">ヴェント</option>
-            <option value="ルビィ">ルビィ</option>
+            <option value="all">すべての主人公 / All Characters</option>
+            <option value="ローラ/Laura">ローラ/Laura</option>
+            <option value="マイス/Mythe">マイス/Mythe</option>
+            <option value="アーミック/Armic">アーミック/Armic</option>
+            <option value="ジュディ/Judy">ジュディ/Judy</option>
+            <option value="キャッシュ/Kurt">キャッシュ/Kurt</option>
+            <option value="ヴェント/Ventus">ヴェント/Ventus</option>
+            <option value="ルビィ/Ruby">ルビィ/Ruby</option>
           </select>
           <select id="month-filter">
-            <option value="all">すべての月</option>
+            <option value="all">すべての月 / All Months</option>
             <!-- JavaScriptで動的に追加されます -->
           </select>
         </div>
@@ -184,12 +225,12 @@
           <table>
             <thead>
               <tr>
-                <th>主人公</th>
-                <th>タイム</th>
-                <th>投稿者名</th>
-                <th>達成日</th>
-                <th>配信URL</th>
-                <th>備考</th>
+                <th>主人公<span class="en-th">Character</span></th>
+                <th>タイム<span class="en-th">Time</span></th>
+                <th>投稿者名<span class="en-th">Runner</span></th>
+                <th>達成日<span class="en-th">Date</span></th>
+                <th>配信URL<span class="en-th">Video URL</span></th>
+                <th>備考<span class="en-th">Notes</span></th>
               </tr>
             </thead>
             <tbody id="records-tbody"></tbody>
@@ -205,8 +246,16 @@
 
     let allData = [];
 
-    // 主人公の配列
-    const CHARACTERS = ['ローラ', 'マイス', 'アーミック', 'ジュディ', 'キャッシュ', 'ヴェント', 'ルビィ'];
+    // 主人公の配列（英語併記版）
+    const CHARACTERS = [
+      'ローラ/Laura',
+      'マイス/Mythe',
+      'アーミック/Armic',
+      'ジュディ/Judy',
+      'キャッシュ/Kurt',
+      'ヴェント/Ventus',
+      'ルビィ/Ruby'
+    ];
 
     // タイム(HH:MM:SS)を秒に変換して比較用にする関数
     function timeToSeconds(timeStr) {
@@ -250,7 +299,7 @@
         initApp();
       })
       .catch(error => {
-        document.getElementById('loading').innerText = 'データの読み込みに失敗しました。';
+        document.getElementById('loading').innerHTML = 'データの読み込みに失敗しました。<br>Failed to load data.';
         console.error('Error fetching data:', error);
       });
 
@@ -275,7 +324,7 @@
       const thisMonthData = allData.filter(item => item._month === currentMonthStr);
       const containerEl = document.getElementById('top-records-container');
       
-      containerEl.innerHTML = ''; // 中身を一度クリア
+      containerEl.innerHTML = ''; 
 
       // 7人の主人公それぞれについてカードを生成
       CHARACTERS.forEach(char => {
@@ -285,18 +334,16 @@
         let cardHtml = `<div class="top-card"><h3>${char}</h3>`;
         
         if (charData.length === 0) {
-          // 記録がない場合
-          cardHtml += `<div class="no-record">今月の記録は<br>まだありません</div>`;
+          cardHtml += `<div class="no-record">今月の記録は<br>まだありません<br><span style="font-size:0.8em; color:#bbb;">No records this month</span></div>`;
         } else {
-          // 記録がある場合：タイムで昇順ソートして1位を取得
           charData.sort((a, b) => a._seconds - b._seconds);
           const firstPlace = charData[0];
           
           cardHtml += `
             <div class="time">${firstPlace['タイム'] || ''}</div>
-            <div class="runner">走者：<strong>${firstPlace['投稿者名'] || '名無し'}</strong></div>
+            <div class="runner">走者/Runner：<strong>${firstPlace['投稿者名'] || 'Anonymous'}</strong></div>
             <div class="date">(${formatDate(firstPlace['達成日'])})</div>
-            ${firstPlace['配信URL'] ? `<div class="link"><a href="${firstPlace['配信URL']}" target="_blank">📺 配信を見る</a></div>` : ''}
+            ${firstPlace['配信URL'] ? `<div class="link"><a href="${firstPlace['配信URL']}" target="_blank">📺 配信を見る/Watch</a></div>` : ''}
           `;
         }
         
@@ -313,8 +360,8 @@
       const listEl = document.getElementById('recent-records');
       recent5.forEach(item => {
         const li = document.createElement('li');
-        li.innerHTML = `<strong>${item['投稿する主人公']}</strong> (${item['タイム']}) - 走者：${item['投稿者名']} 
-                        <span style="color:#888; font-size:0.85em;">(投稿: ${formatDate(item['タイムスタンプ'])})</span>`;
+        li.innerHTML = `<strong>${item['投稿する主人公']}</strong> (${item['タイム']}) - 走者/Runner：${item['投稿者名']} 
+                        <span style="color:#888; font-size:0.85em;">(投稿/Submitted: ${formatDate(item['タイムスタンプ'])})</span>`;
         listEl.appendChild(li);
       });
     }
@@ -351,7 +398,7 @@
       filteredData.sort((a, b) => a._seconds - b._seconds);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">該当する記録がありません。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">該当する記録がありません。<br><span style="font-size:0.8em; color:#666;">No records found.</span></td></tr>';
         return;
       }
 
@@ -360,7 +407,7 @@
         
         let urlHtml = '';
         if (item['配信URL']) {
-          urlHtml = `<a href="${item['配信URL']}" target="_blank">リンク</a>`;
+          urlHtml = `<a href="${item['配信URL']}" target="_blank">リンク/Link</a>`;
         }
 
         tr.innerHTML = `
